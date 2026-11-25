@@ -125,6 +125,38 @@
     ].map(stepText);
   }
 
+  // The farm plan as plain text: one numbered line per step, so it pastes cleanly
+  // into a notes app or a chat. The steps are the same strings the drawer shows.
+  function farmPlanText(row, steps) {
+    var lines = ['Farm plan for ' + row.name + ' (rank ' + row.rank + ' of ' + DATA.board_size + ', implied value ' + fmtUsd(row.implied_value_usd) + ')'];
+    steps.forEach(function (s, i) { lines.push((i + 1) + '. ' + s); });
+    return lines.join('\n') + '\n';
+  }
+  function copyText(text, button) {
+    function done(ok) {
+      button.textContent = ok ? 'Copied' : 'Copy failed';
+      setTimeout(function () { button.textContent = 'Copy farm plan'; }, 2000);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { done(true); }, function () { copyFallback(text, done); });
+    } else {
+      copyFallback(text, done);
+    }
+  }
+  function copyFallback(text, done) {
+    var area = document.createElement('textarea');
+    area.value = text;
+    area.setAttribute('readonly', '');
+    area.style.position = 'fixed';
+    area.style.opacity = '0';
+    document.body.appendChild(area);
+    area.select();
+    var ok = false;
+    try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(area);
+    done(ok);
+  }
+
   function readHash() {
     var hash = window.location.hash.replace(/^#/, '');
     if (!hash) return;
@@ -167,6 +199,49 @@
     });
   }
 
+  // The export is the board the visitor is looking at: same filter, same sort.
+  function visibleRows() { return sortedRows(rows()); }
+
+  function csvField(value) {
+    var s = value === null || value === undefined ? '' : String(value);
+    if (/[",\n\r]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
+    return s;
+  }
+  function boardCsv(list) {
+    var lines = ['slug,name,rank,implied_value_usd,category,farm_steps'];
+    list.forEach(function (r) {
+      lines.push([
+        csvField(r.slug),
+        csvField(r.name),
+        csvField(r.rank),
+        csvField(r.implied_value_usd),
+        csvField(r.category || 'Other'),
+        csvField(farmSteps(r).length)
+      ].join(','));
+    });
+    return lines.join('\r\n') + '\r\n';
+  }
+  function downloadText(filename, text, type) {
+    var blob = new Blob([text], { type: type || 'text/plain;charset=utf-8' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+  }
+  function exportCsv(button) {
+    if (state.tab !== 'pre-token') return;
+    var list = visibleRows();
+    if (list.length === 0) return;
+    downloadText('token-radar-board.csv', boardCsv(list), 'text/csv;charset=utf-8');
+    var label = button.textContent;
+    button.textContent = 'Exported ' + list.length + ' rows';
+    setTimeout(function () { button.textContent = label; }, 2000);
+  }
+
   function header() {
     return el('header', { class: 'top' },
       el('div', { class: 'brand' }, el('span', { class: 'mark' }), el('span', { class: 'brand-name', text: 'Token Radar' })),
@@ -182,7 +257,11 @@
     return el('section', { class: 'lede' },
       el('div', null,
         el('h1', { text: DATA.watchlist_size + ' watchlist protocols, ranked by implied value' }),
-        el('p', { text: 'The watchlist is the floor: every protocol with at least $' + Math.round(DATA.floor_usd / 1e6) + 'M of TVL and no token on record. The early radar adds ' + DATA.early_size + ' pre-token protocols below that floor. Implied value is a model, not a promise.' })
+        el('p', { text: 'The watchlist is the floor: every protocol with at least $' + Math.round(DATA.floor_usd / 1e6) + 'M of TVL and no token on record. The early radar adds ' + DATA.early_size + ' pre-token protocols below that floor. Implied value is a model, not a promise.' }),
+        el('p', { class: 'reading-guide' },
+          el('b', { text: 'How to read this board: ' }),
+          'implied value is the model\u2019s estimate of what a protocol could be worth if it launched a token today \u2014 its TVL times the category multiple set by live-token peers in the same category. Rows are sorted strongest first; select any row for the model\u2019s own arithmetic and an eight-step farm plan.'
+        )
       ),
       el('div', { class: 'facts' },
         el('div', { class: 'fact' }, el('span', { text: 'Watchlist covered' }), el('b', { text: DATA.watchlist_size + ' / ' + DATA.watchlist_size })),
@@ -204,10 +283,12 @@
     select.addEventListener('change', function () { state.category = select.value; writeHash(); render(); });
     var pre = el('button', { type: 'button', 'aria-pressed': state.tab === 'pre-token' ? 'true' : 'false', text: 'Pre-token', onclick: function () { state.tab = 'pre-token'; render(); } });
     var live = el('button', { type: 'button', 'aria-pressed': state.tab === 'live' ? 'true' : 'false', text: 'Live token', onclick: function () { state.tab = 'live'; render(); } });
+    var exportBtn = el('button', { type: 'button', class: 'button primary', text: 'Export CSV', title: state.tab === 'pre-token' ? 'Download the rows shown below as CSV' : 'Switch to the Pre-token tab to export the board', disabled: state.tab === 'pre-token' ? null : 'disabled', onclick: function () { exportCsv(exportBtn); } });
     return el('div', { class: 'controls' },
       el('div', { class: 'field' }, el('label', { for: 'q', text: 'Search' }), search),
       el('div', { class: 'field' }, el('label', { for: 'category', text: 'Category' }), select),
       el('div', { class: 'field' }, el('span', { class: 'sub', text: 'Token status' }), el('div', { class: 'tabs' }, pre, live)),
+      el('div', { class: 'field' }, el('span', { class: 'sub', text: 'Export' }), exportBtn),
       el('span', { class: 'count', text: state.tab === 'pre-token' ? rows().length + ' rows shown' : DATA.live.length + ' live-token protocols' })
     );
   }
@@ -222,7 +303,7 @@
   }
 
   function boardTable() {
-    var list = sortedRows(rows());
+    var list = visibleRows();
     if (list.length === 0) {
       return el('div', { class: 'panel' }, el('div', { class: 'empty' },
         el('h2', { text: 'No protocol matches that filter' }),
@@ -354,8 +435,12 @@
         ? 'No live-token protocol in the ' + (row.category || 'Other') + ' category carries a market cap in this snapshot, so the category multiple falls back to the global median.'
         : 'Live ' + (row.category || 'Other') + ' tokens in this snapshot trade at a median market cap of ' + fmtUsd(row.category_live_median_mcap) + '; this row\u2019s implied value is the model\u2019s claim against that peer set.' })
     ));
+    var copyBtn = el('button', { class: 'button copy-btn', type: 'button', text: 'Copy farm plan', onclick: function () { copyText(farmPlanText(row, steps), copyBtn); } });
     dialog.appendChild(el('section', { class: 'detail-section' },
-      el('h3', { text: 'Farm plan' }),
+      el('div', { class: 'section-head' },
+        el('h3', { text: 'Farm plan' }),
+        copyBtn
+      ),
       el('ol', { class: 'steps' }, steps.map(function (s) {
         var at = s.indexOf(' Cost: ');
         var action = at >= 0 ? s.slice(0, at) : s;

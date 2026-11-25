@@ -115,6 +115,16 @@ td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: now
 .steps li b { font-weight: 600; }
 .steps .cost { display: block; font-size: 13px; color: var(--ink-soft); }
 .note { font-size: 13px; color: var(--ink-soft); }
+.reading-guide {
+  margin-top: 10px; font-size: 13px; color: var(--ink-soft);
+  background: var(--accent-soft); border: 1px solid var(--line);
+  border-radius: 8px; padding: 8px 12px;
+}
+.reading-guide b { color: var(--accent-ink); }
+.button:disabled { opacity: .45; cursor: not-allowed; }
+.section-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 10px; }
+.section-head h3 { margin: 0; }
+.copy-btn { font-size: 13px; padding: 6px 10px; white-space: nowrap; }
 @media (max-width: 720px) {
   .facts { grid-template-columns: repeat(2, 1fr); }
   .lede h1 { font-size: 22px; }
