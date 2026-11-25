@@ -1,8 +1,8 @@
 # token-radar
 
 [![make.fun · token-radar-01](https://make.fun/badge/token-radar-01.svg)](https://make.fun/bounty/token-radar-01?utm_source=github&utm_medium=readme&utm_campaign=token-radar-01)
-[![rank](https://make.fun/badge/token-radar-01/BasqueT-T/token-radar/rank.svg)](https://make.fun/bounty/token-radar-01/leaderboard?utm_source=github&utm_medium=readme&utm_campaign=token-radar-01)
-[![reward](https://make.fun/badge/token-radar-01/BasqueT-T/token-radar/reward.svg)](https://make.fun/bounty/token-radar-01?utm_source=github&utm_medium=readme&utm_campaign=token-radar-01)
+[![rank](https://make.fun/badge/token-radar-01/BasqueT-T/SuperOrange/rank.svg)](https://make.fun/bounty/token-radar-01/leaderboard?utm_source=github&utm_medium=readme&utm_campaign=token-radar-01)
+[![reward](https://make.fun/badge/token-radar-01/BasqueT-T/SuperOrange/reward.svg)](https://make.fun/bounty/token-radar-01?utm_source=github&utm_medium=readme&utm_campaign=token-radar-01)
 
 Token Radar ranks pre-token protocols by implied value: every protocol with at least $50M of TVL and no token on record, plus the early pre-token protocols below that floor, scored from the snapshot's own figures. The multiple is the median market-cap / TVL of the snapshot's live-token protocols in each category, so a DEX token and a lending token are not priced the same. Each row carries an eight-step farm plan with costs and times, and the dashboard is sortable, filterable and has a detail view for every protocol.
 
